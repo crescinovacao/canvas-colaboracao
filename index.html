@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canvas de Colaboração</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<style>
+  :root {
+    --foco-dark: #A50062;
+    --foco-mid: #ED40A9;
+    --foco-light: #F6A7D7;
+    --curiosidade-dark: #2D0051;
+    --curiosidade-mid: #A261E1;
+    --curiosidade-light: #DEC5FF;
+    --transparencia-dark: #001B71;
+    --transparencia-mid: #007BEA;
+    --transparencia-light: #B3DFFF;
+    --identificacao-dark: #003E00;
+    --identificacao-mid: #00C466;
+    --identificacao-light: #BDF4CC;
+    --text: #210000;
+    --text-light: #6b4b4b;
+    --bg: #F2F0F5;
+    --white: #FFFFFF;
+    --off: #F8F6F8;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Aptos', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: var(--white);
+    border-bottom: 1px solid rgba(33,0,0,0.08);
+    padding: 0 28px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .nav-logo img {
+    height: 30px;
+    display: block;
+  }
+
+  .nav-pills {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+    justify-content: center;
+  }
+  .nav-pills::-webkit-scrollbar { display: none; }
+
+  .nav-pill {
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.18s;
+    white-space: nowrap;
+    background: transparent;
+    letter-spacing: 0.2px;
+  }
+  .nav-pill[data-pilar="1"] { background: var(--foco-light); border-color: var(--foco-light); color: var(--foco-dark); }
+  .nav-pill[data-pilar="1"].active { background: var(--foco-dark); color: white; border-color: var(--foco-dark); }
+  .nav-pill[data-pilar="2"] { background: var(--curiosidade-light); border-color: var(--curiosidade-light); color: var(--curiosidade-dark); }
+  .nav-pill[data-pilar="2"].active { background: var(--curiosidade-dark); color: white; border-color: var(--curiosidade-dark); }
+  .nav-pill[data-pilar="3"] { background: var(--transparencia-light); border-color: var(--transparencia-light); color: var(--transparencia-dark); }
+  .nav-pill[data-pilar="3"].active { background: var(--transparencia-dark); color: white; border-color: var(--transparencia-dark); }
+  .nav-pill[data-pilar="4"] { background: var(--identificacao-light); border-color: var(--identificacao-light); color: var(--identificacao-dark); }
+  .nav-pill[data-pilar="4"].active { background: var(--identificacao-dark); color: white; border-color: var(--identificacao-dark); }
+
+  .nav-pdf-btn {
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: var(--text);
+    color: white;
+    white-space: nowrap;
+    transition: opacity 0.18s;
+    letter-spacing: 0.2px;
+  }
+  .nav-pdf-btn:hover { opacity: 0.82; }
+
+  /* MAIN */
+  .main { padding-top: 60px; }
+
+  /* PILAR PAGE */
+  .pilar-page {
+    display: none;
+    min-height: calc(100vh - 60px);
+    padding: 32px 24px 64px;
+    max-width: 720px;
+    margin: 0 auto;
+    animation: fadeUp 0.25s ease;
+  }
+  .pilar-page.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* PILAR HEADER */
+  .pilar-header {
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 16px;
+  }
+  .pilar-1 .pilar-header { background: var(--foco-dark); }
+  .pilar-2 .pilar-header { background: var(--curiosidade-dark); }
+  .pilar-3 .pilar-header { background: var(--transparencia-dark); }
+  .pilar-4 .pilar-header { background: var(--identificacao-dark); }
+
+  .pilar-num {
+    font-family: 'Raleway', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 4px;
+  }
+  .pilar-name {
+    font-family: 'Raleway', sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    color: white;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .pilar-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 12px;
+  }
+  .pilar-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    background: rgba(255,255,255,0.15);
+    color: white;
+  }
+
+  /* META BAR */
+  .meta-bar {
+    background: var(--white);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    box-shadow: 0 1px 6px rgba(33,0,0,0.06);
+    overflow: hidden;
+  }
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 20px;
+    border-bottom: 1px solid rgba(33,0,0,0.06);
+  }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-label {
+    font-family: 'Raleway', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-light);
+    white-space: nowrap;
+    min-width: 96px;
+  }
+  .meta-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-family: 'Aptos', 'Segoe UI', sans-serif;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text);
+  }
+  .meta-input::placeholder { color: #c4aab0; font-weight: 400; }
+
+  /* CARDS */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 6px rgba(33,0,0,0.06);
+  }
+
+  .card-label {
+    font-family: 'Raleway', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .pilar-1 .card-label { color: var(--foco-dark); }
+  .pilar-2 .card-label { color: var(--curiosidade-dark); }
+  .pilar-3 .card-label { color: var(--transparencia-dark); }
+  .pilar-4 .card-label { color: var(--identificacao-dark); }
+
+  .card-question {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  textarea {
+    width: 100%;
+    border: 1.5px solid #e4dada;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 15px;
+    font-family: 'Aptos', 'Segoe UI', sans-serif;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    transition: border-color 0.18s;
+    line-height: 1.6;
+    background: var(--off);
+  }
+  textarea::placeholder { color: #c4aab0; }
+  .pilar-1 textarea:focus { border-color: var(--foco-mid); background: white; }
+  .pilar-2 textarea:focus { border-color: var(--curiosidade-mid); background: white; }
+  .pilar-3 textarea:focus { border-color: var(--transparencia-mid); background: white; }
+  .pilar-4 textarea:focus { border-color: var(--identificacao-mid); background: white; }
+
+  .numbered-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .item-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Raleway', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: white;
+  }
+  .pilar-1 .item-num { background: var(--foco-mid); }
+  .pilar-2 .item-num { background: var(--curiosidade-mid); }
+  .pilar-3 .item-num { background: var(--transparencia-mid); }
+  .pilar-4 .item-num { background: var(--identificacao-mid); }
+
+  .intro-text {
+    font-size: 15px;
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+  .intro-text strong { color: var(--text); }
+
+  /* PERFIS */
+  .perfis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .perfil-card {
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    border: 1.5px solid var(--identificacao-light);
+    background: var(--white);
+    box-shadow: 0 1px 6px rgba(33,0,0,0.05);
+  }
+  .perfil-name {
+    font-family: 'Raleway', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--identificacao-dark);
+    margin-bottom: 2px;
+  }
+  .perfil-desc {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .perfil-divider { display: none; }
+  .perfil-names-area {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .perfil-name-input {
+    width: 100%;
+    border: 1.5px solid #e4dada;
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: 'Aptos', 'Segoe UI', sans-serif;
+    outline: none;
+    background: var(--off);
+    color: var(--text);
+    transition: border-color 0.18s;
+  }
+  .perfil-name-input:focus { border-color: var(--identificacao-mid); background: white; }
+  .perfil-name-input::placeholder { color: #c4aab0; }
+
+  /* DOWNLOAD BTN */
+  .download-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  .download-btn {
+    padding: 11px 22px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    color: white;
+    transition: opacity 0.18s;
+    letter-spacing: 0.2px;
+  }
+  .download-btn:hover { opacity: 0.82; }
+  .pilar-1 .download-btn { background: var(--foco-dark); }
+  .pilar-2 .download-btn { background: var(--curiosidade-dark); }
+  .pilar-3 .download-btn { background: var(--transparencia-dark); }
+  .pilar-4 .download-btn { background: var(--identificacao-dark); }
+
+  /* SAVE INDICATOR */
+  .save-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 600;
+    transition: transform 0.28s ease;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .save-indicator.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 520px) {
+    .perfis-grid { grid-template-columns: 1fr; }
+    .pilar-name { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">
+    <img src="https://i.imgur.com/XVfvmJy.png" alt="Crescimentum">
+  </div>
+  <div class="nav-pills">
+    <button class="nav-pill active" data-pilar="1" onclick="showPilar(1)">Foco</button>
+    <button class="nav-pill" data-pilar="2" onclick="showPilar(2)">Curiosidade</button>
+    <button class="nav-pill" data-pilar="3" onclick="showPilar(3)">Transparência</button>
+    <button class="nav-pill" data-pilar="4" onclick="showPilar(4)">Identificação</button>
+  </div>
+  <button class="nav-pdf-btn" onclick="downloadAllPDF()">Baixar PDF</button>
+</nav>
+
+<div class="save-indicator" id="saveIndicator">Salvo automaticamente</div>
+
+<main class="main">
+
+  <!-- PILAR 1: FOCO -->
+  <div class="pilar-page pilar-1 active" id="pilar-1">
+    <div class="pilar-header">
+      <div class="pilar-num">Pilar 01</div>
+      <div class="pilar-name">Foco</div>
+      <div class="pilar-sub">Alinhamento e Propósito</div>
+      <div class="pilar-badge">Atividade em dupla</div>
+    </div>
+
+    <div class="meta-bar">
+      <div class="meta-row">
+        <span class="meta-label">Meu nome</span>
+        <input class="meta-input" type="text" id="nome" placeholder="Escreva seu nome" oninput="save()">
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Área parceira</span>
+        <input class="meta-input" type="text" id="p1_area" placeholder="Nome da área" oninput="save()">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Pergunta 1</div>
+      <div class="card-question">Como minha área gera valor para o negócio?</div>
+      <textarea id="p1_q1" rows="3" placeholder="Descreva como sua área contribui..." oninput="save()"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Pergunta 2</div>
+      <div class="card-question">O que ambas as nossas áreas concordam que é relevante?</div>
+      <textarea id="p1_q2" rows="3" placeholder="Quais os pontos de convergência entre as áreas?" oninput="save()"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Pergunta 3</div>
+      <div class="card-question">Quando temos um impasse, qual é o nosso critério de decisão?</div>
+      <textarea id="p1_q3" rows="3" placeholder="Como decidem quando há conflito de prioridades?" oninput="save()"></textarea>
+    </div>
+
+    <div class="download-row">
+      <button class="download-btn" onclick="showPilar(2)">Avançar →</button>
+    </div>
+  </div>
+
+  <!-- PILAR 2: CURIOSIDADE -->
+  <div class="pilar-page pilar-2" id="pilar-2">
+    <div class="pilar-header">
+      <div class="pilar-num">Pilar 02</div>
+      <div class="pilar-name">Curiosidade</div>
+      <div class="pilar-sub">Empatia e Questionamento</div>
+      <div class="pilar-badge">Atividade em dupla</div>
+    </div>
+
+    <div class="card">
+      <p class="intro-text">Olhando para sua relação com a área parceira, quais são as <strong>2 perguntas mais impactantes</strong> para fazer a colaboração deslanchar?</p>
+    </div>
+
+    <div class="card">
+      <div class="numbered-item">
+        <div class="item-num">1</div>
+        <div style="flex:1">
+          <div class="card-label">Pergunta 1</div>
+          <textarea id="p2_q1" rows="3" placeholder="Qual pergunta abriria a conversa que ainda não aconteceu?" oninput="save()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="numbered-item">
+        <div class="item-num">2</div>
+        <div style="flex:1">
+          <div class="card-label">Pergunta 2</div>
+          <textarea id="p2_q2" rows="3" placeholder="Qual pergunta ajudaria a entender melhor o outro lado?" oninput="save()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="download-row">
+      <button class="download-btn" onclick="showPilar(3)">Avançar →</button>
+    </div>
+  </div>
+
+  <!-- PILAR 3: TRANSPARÊNCIA -->
+  <div class="pilar-page pilar-3" id="pilar-3">
+    <div class="pilar-header">
+      <div class="pilar-num">Pilar 03</div>
+      <div class="pilar-name">Transparência</div>
+      <div class="pilar-sub">Rituais e Sistematização</div>
+      <div class="pilar-badge">Atividade em dupla</div>
+    </div>
+
+    <div class="card">
+      <p class="intro-text">Crie uma agenda comum com a área parceira que fará diferença — ou revise uma agenda que já existe mas não está funcionando.</p>
+    </div>
+
+    <div class="card">
+      <div class="numbered-item">
+        <div class="item-num">1</div>
+        <div style="flex:1">
+          <div class="card-label">Definir objetivo</div>
+          <div class="card-question">Essa reunião será um sucesso se...?</div>
+          <textarea id="p3_q1" rows="3" placeholder="Qual seria o resultado ideal dessa reunião?" oninput="save()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="numbered-item">
+        <div class="item-num">2</div>
+        <div style="flex:1">
+          <div class="card-label">Fazer acordos</div>
+          <div class="card-question">Como precisamos agir para obter sucesso?</div>
+          <textarea id="p3_q2" rows="3" placeholder="Quais combinados são necessários para essa parceria funcionar?" oninput="save()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="numbered-item">
+        <div class="item-num">3</div>
+        <div style="flex:1">
+          <div class="card-label">Fechamento</div>
+          <div class="card-question">Como garantir a aplicação do que foi discutido?</div>
+          <textarea id="p3_q3" rows="3" placeholder="Qual o próximo passo concreto após a reunião?" oninput="save()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="download-row">
+      <button class="download-btn" onclick="showPilar(4)">Avançar →</button>
+    </div>
+  </div>
+
+  <!-- PILAR 4: IDENTIFICAÇÃO -->
+  <div class="pilar-page pilar-4" id="pilar-4">
+    <div class="pilar-header">
+      <div class="pilar-num">Pilar 04</div>
+      <div class="pilar-name">Identificação</div>
+      <div class="pilar-sub">Mapeamento de Perfis</div>
+      <div class="pilar-badge">Atividade individual</div>
+    </div>
+
+    <div class="card">
+      <p class="intro-text">Mapeie até <strong>3 pessoas</strong> da sua equipe para cada perfil abaixo e visualize como o time está se organizando hoje.</p>
+    </div>
+
+    <div class="perfis-grid">
+      <div class="perfil-card">
+        <div class="perfil-name">Bloqueador(a)</div>
+        <div class="perfil-desc">Dificulta processos e impede a comunicação</div>
+        <div class="perfil-divider"></div>
+        <div class="perfil-names-area">
+          <input class="perfil-name-input" type="text" id="p4_b1" placeholder="Nome 1" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_b2" placeholder="Nome 2" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_b3" placeholder="Nome 3" oninput="save()">
+        </div>
+      </div>
+
+      <div class="perfil-card">
+        <div class="perfil-name">Conector(a)</div>
+        <div class="perfil-desc">Conecta múltiplas áreas para agir juntas</div>
+        <div class="perfil-divider"></div>
+        <div class="perfil-names-area">
+          <input class="perfil-name-input" type="text" id="p4_c1" placeholder="Nome 1" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_c2" placeholder="Nome 2" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_c3" placeholder="Nome 3" oninput="save()">
+        </div>
+      </div>
+
+      <div class="perfil-card">
+        <div class="perfil-name">Executor(a)</div>
+        <div class="perfil-desc">Faz o básico e realiza suas tarefas</div>
+        <div class="perfil-divider"></div>
+        <div class="perfil-names-area">
+          <input class="perfil-name-input" type="text" id="p4_e1" placeholder="Nome 1" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_e2" placeholder="Nome 2" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_e3" placeholder="Nome 3" oninput="save()">
+        </div>
+      </div>
+
+      <div class="perfil-card">
+        <div class="perfil-name">Energizador(a)</div>
+        <div class="perfil-desc">Motiva e estimula os outros</div>
+        <div class="perfil-divider"></div>
+        <div class="perfil-names-area">
+          <input class="perfil-name-input" type="text" id="p4_en1" placeholder="Nome 1" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_en2" placeholder="Nome 2" oninput="save()">
+          <input class="perfil-name-input" type="text" id="p4_en3" placeholder="Nome 3" oninput="save()">
+        </div>
+      </div>
+    </div>
+
+    <div class="download-row">
+      <button class="download-btn" onclick="downloadAllPDF()">Baixar meu Canvas em PDF</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const FIELDS = [
+    'nome','p1_area',
+    'p1_q1','p1_q2','p1_q3',
+    'p2_q1','p2_q2',
+    'p3_q1','p3_q2','p3_q3',
+    'p4_b1','p4_b2','p4_b3',
+    'p4_c1','p4_c2','p4_c3',
+    'p4_e1','p4_e2','p4_e3',
+    'p4_en1','p4_en2','p4_en3'
+  ];
+
+  let saveTimer = null, indicatorTimer = null;
+
+  function save() {
+    const data = {};
+    FIELDS.forEach(id => { const el = document.getElementById(id); if (el) data[id] = el.value; });
+    localStorage.setItem('canvas_colaboracao_v2', JSON.stringify(data));
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(showSaved, 800);
+  }
+
+  function showSaved() {
+    const ind = document.getElementById('saveIndicator');
+    ind.classList.add('show');
+    clearTimeout(indicatorTimer);
+    indicatorTimer = setTimeout(() => ind.classList.remove('show'), 2000);
+  }
+
+  function load() {
+    const raw = localStorage.getItem('canvas_colaboracao_v2');
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      FIELDS.forEach(id => { const el = document.getElementById(id); if (el && data[id] !== undefined) el.value = data[id]; });
+    } catch(e) {}
+  }
+
+  function showPilar(n) {
+    document.querySelectorAll('.pilar-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+    document.getElementById('pilar-' + n).classList.add('active');
+    document.querySelector(`.nav-pill[data-pilar="${n}"]`).classList.add('active');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  function getValues() {
+    const v = {};
+    FIELDS.forEach(id => { const el = document.getElementById(id); v[id] = el ? el.value.trim() : ''; });
+    return v;
+  }
+
+  function esc(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+
+  const C = {
+    1: { dark:'#A50062', mid:'#ED40A9', light:'#F6A7D7', name:'Foco', sub:'Alinhamento e Propósito', badge:'Atividade em dupla' },
+    2: { dark:'#2D0051', mid:'#A261E1', light:'#DEC5FF', name:'Curiosidade', sub:'Empatia e Questionamento', badge:'Atividade em dupla' },
+    3: { dark:'#001B71', mid:'#007BEA', light:'#B3DFFF', name:'Transparência', sub:'Rituais e Sistematização', badge:'Atividade em dupla' },
+    4: { dark:'#003E00', mid:'#00C466', light:'#BDF4CC', name:'Identificação', sub:'Mapeamento de Perfis', badge:'Atividade individual' },
+  };
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return [r,g,b];
+  }
+
+  function fieldBlock(label, value, color) {
+    const empty = !value;
+    return [
+      { text: label, fontSize: 8, bold: true, color: color, margin: [0, 10, 0, 3] },
+      {
+        text: empty ? 'Não preenchido' : value,
+        fontSize: 10,
+        color: empty ? '#bba8a8' : '#210000',
+        italics: empty,
+        fillColor: '#F8F6F8',
+        margin: [0, 0, 0, 0],
+        padding: [8, 6, 8, 6],
+        border: [false,false,false,false],
+        table: {
+          widths: ['*'],
+          body: [[{
+            text: empty ? 'Não preenchido' : value,
+            fontSize: 10,
+            color: empty ? '#bba8a8' : '#210000',
+            italics: empty,
+            fillColor: '#F8F6F8',
+            border: [true,true,true,true],
+            borderColor: ['#E4DADA','#E4DADA','#E4DADA','#E4DADA'],
+            margin: [8, 6, 8, 6],
+          }]]
+        },
+        layout: { defaultBorder: false }
+      }
+    ];
+  }
+
+  function pilarHeader(n) {
+    const c = C[n];
+    const rgb = hexToRgb(c.dark);
+    return {
+      table: {
+        widths: ['*'],
+        body: [[{
+          stack: [
+            { text: `PILAR 0${n}`, fontSize: 8, bold: true, color: 'white', opacity: 0.6, characterSpacing: 2, margin: [0,0,0,3] },
+            { text: c.name, fontSize: 24, bold: true, color: 'white', margin: [0,0,0,3] },
+            { text: `${c.sub}  ·  ${c.badge}`, fontSize: 9, color: 'white', opacity: 0.75 },
+          ],
+          fillColor: c.dark,
+          border: [false,false,false,false],
+          margin: [18, 18, 18, 18],
+        }]]
+      },
+      layout: 'noBorders',
+      margin: [0, 0, 0, 16],
+    };
+  }
+
+  function buildPage(n, v) {
+    const c = C[n];
+    const nome = v.nome || '';
+    const area = v.p1_area || '';
+    const content = [pilarHeader(n)];
+
+    if (n === 1) {
+      // Meta block
+      content.push({
+        table: {
+          widths: [80, '*'],
+          body: [
+            [
+              { text: 'Participante', fontSize: 9, bold: true, color: '#6b4b4b', border:[false,false,false,true], borderColor:['','','','#eee'], margin:[8,8,8,8] },
+              { text: nome || '—', fontSize: 10, bold: true, color: '#210000', border:[false,false,false,true], borderColor:['','','','#eee'], margin:[8,8,8,8] }
+            ],
+            [
+              { text: 'Área parceira', fontSize: 9, bold: true, color: '#6b4b4b', border:[false,false,false,false], margin:[8,8,8,8] },
+              { text: area || '—', fontSize: 10, bold: true, color: '#210000', border:[false,false,false,false], margin:[8,8,8,8] }
+            ],
+          ]
+        },
+        layout: { fillColor: '#F8F6F8', hLineColor: '#eee', vLineColor: '#fff' },
+        margin: [0, 0, 0, 4],
+      });
+      content.push(...fieldBlock('Como minha área gera valor para o negócio?', v.p1_q1, c.dark));
+      content.push(...fieldBlock('O que ambas as nossas áreas concordam que é relevante?', v.p1_q2, c.dark));
+      content.push(...fieldBlock('Quando temos um impasse, qual é o nosso critério de decisão?', v.p1_q3, c.dark));
+
+    } else if (n === 2) {
+      content.push({ text: `Olhando para sua relação com a área parceira${area ? ` (${area})` : ''}, quais são as 2 perguntas mais impactantes para fazer a colaboração deslanchar?`, fontSize: 10, color: '#6b4b4b', margin:[0,0,0,4] });
+      content.push(...fieldBlock('1  Pergunta 1', v.p2_q1, c.dark));
+      content.push(...fieldBlock('2  Pergunta 2', v.p2_q2, c.dark));
+
+    } else if (n === 3) {
+      content.push({ text: `Agenda conjunta com a área${area ? ` ${area}` : ' parceira'} — criação ou revisão de uma agenda que não está funcionando.`, fontSize: 10, color: '#6b4b4b', margin:[0,0,0,4] });
+      content.push(...fieldBlock('1  Essa reunião será um sucesso se...?', v.p3_q1, c.dark));
+      content.push(...fieldBlock('2  Como precisamos agir para obter sucesso?', v.p3_q2, c.dark));
+      content.push(...fieldBlock('3  Como garantir a aplicação do que foi discutido?', v.p3_q3, c.dark));
+
+    } else if (n === 4) {
+      content.push({ text: 'Mapeie até 3 pessoas da sua equipe para cada perfil e visualize como o time está se organizando hoje.', fontSize: 10, color: '#6b4b4b', margin:[0,0,0,10] });
+      const perfis = [
+        { name:'Bloqueador(a)', desc:'Dificulta processos e impede a comunicação', ids:['p4_b1','p4_b2','p4_b3'] },
+        { name:'Conector(a)',   desc:'Conecta múltiplas áreas para agir juntas',   ids:['p4_c1','p4_c2','p4_c3'] },
+        { name:'Executor(a)',   desc:'Faz o básico e realiza suas tarefas',         ids:['p4_e1','p4_e2','p4_e3'] },
+        { name:'Energizador(a)',desc:'Motiva e estimula os outros',                 ids:['p4_en1','p4_en2','p4_en3'] },
+      ];
+      const cols = perfis.map(p => ({
+        stack: [
+          { canvas: [{ type:'rect', x:0, y:0, w:240, h:3, color: c.mid, r:2 }], margin:[0,0,0,8] },
+          { text: p.name, fontSize: 11, bold: true, color: c.dark, margin:[0,0,0,2] },
+          { text: p.desc, fontSize: 9, color: '#6b4b4b', margin:[0,0,0,8] },
+          ...p.ids.map((id,i) => ({
+            text: `${i+1}.  ${v[id] || '—'}`,
+            fontSize: 10,
+            color: v[id] ? '#210000' : '#bba8a8',
+            italics: !v[id],
+            margin:[0,0,0,4],
+          }))
+        ],
+        fillColor: '#F8F6F8',
+        border:[false,false,false,false],
+        margin:[6,8,6,8],
+      }));
+      content.push({
+        table: { widths:['*','*'], body:[[cols[0],cols[1]],[cols[2],cols[3]]] },
+        layout: { defaultBorder: false, fillColor: '#F8F6F8', hLineColor:'#eee', vLineColor:'#eee' },
+      });
+    }
+
+    // Footer
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    content.push({
+      columns: [
+        { text: 'Canvas de Colaboração · Crescimentum', fontSize: 9, color: '#bba8a8' },
+        { text: hoje, fontSize: 9, color: '#bba8a8', alignment: 'right' },
+      ],
+      margin: [0, 20, 0, 0],
+    });
+
+    return content;
+  }
+
+  function buildDocDef(pilars) {
+    const v = getValues();
+    const nome = (v.nome || 'canvas').replace(/\s+/g,'-').toLowerCase();
+    const content = [];
+    pilars.forEach((n, i) => {
+      if (i > 0) content.push({ text: '', pageBreak: 'before' });
+      content.push(...buildPage(n, v));
+    });
+    return {
+      content,
+      pageSize: 'A4',
+      pageMargins: [32, 32, 32, 32],
+      defaultStyle: { font: 'Helvetica' },
+    };
+  }
+
+  function downloadAllPDF() {
+    const btn = document.querySelector('.nav-pdf-btn');
+    btn.textContent = 'Gerando...';
+    btn.disabled = true;
+    const v = getValues();
+    const nome = (v.nome || 'canvas').replace(/\s+/g,'-').toLowerCase();
+    pdfMake.createPdf(buildDocDef([1,2,3,4])).download(`canvas-colaboracao-${nome}.pdf`, () => {
+      btn.textContent = 'Baixar PDF';
+      btn.disabled = false;
+    });
+  }
+
+  load();
+</script>
+</body>
+</html>
