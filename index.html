@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Canvas de Colaboração</title>
 <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 <style>
   :root {
     --foco-dark: #A50062;
@@ -335,10 +333,10 @@
   .perfil-name-input:focus { border-color: var(--identificacao-mid); background: white; }
   .perfil-name-input::placeholder { color: #c4aab0; }
 
-  /* DOWNLOAD BTN */
   .download-row {
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
     margin-top: 20px;
   }
   .download-btn {
@@ -354,10 +352,18 @@
     letter-spacing: 0.2px;
   }
   .download-btn:hover { opacity: 0.82; }
+  .download-btn.secondary {
+    background: transparent !important;
+    border: 2px solid;
+  }
   .pilar-1 .download-btn { background: var(--foco-dark); }
+  .pilar-1 .download-btn.secondary { color: var(--foco-dark); border-color: var(--foco-dark); }
   .pilar-2 .download-btn { background: var(--curiosidade-dark); }
+  .pilar-2 .download-btn.secondary { color: var(--curiosidade-dark); border-color: var(--curiosidade-dark); }
   .pilar-3 .download-btn { background: var(--transparencia-dark); }
+  .pilar-3 .download-btn.secondary { color: var(--transparencia-dark); border-color: var(--transparencia-dark); }
   .pilar-4 .download-btn { background: var(--identificacao-dark); }
+  .pilar-4 .download-btn.secondary { color: var(--identificacao-dark); border-color: var(--identificacao-dark); }
 
   /* SAVE INDICATOR */
   .save-indicator {
@@ -396,7 +402,7 @@
     <button class="nav-pill" data-pilar="3" onclick="showPilar(3)">Transparência</button>
     <button class="nav-pill" data-pilar="4" onclick="showPilar(4)">Identificação</button>
   </div>
-  <button class="nav-pdf-btn" onclick="downloadAllPDF()">Baixar PDF</button>
+  <button class="nav-pdf-btn" onclick="abrirPDF()">Baixar PDF</button>
 </nav>
 
 <div class="save-indicator" id="saveIndicator">Salvo automaticamente</div>
@@ -595,7 +601,7 @@
     </div>
 
     <div class="download-row">
-      <button class="download-btn" onclick="downloadAllPDF()">Baixar meu Canvas em PDF</button>
+      <button class="download-btn" onclick="abrirPDF()">Baixar meu Canvas</button>
     </div>
   </div>
 
@@ -657,183 +663,130 @@
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
   }
 
-  const C = {
-    1: { dark:'#A50062', mid:'#ED40A9', light:'#F6A7D7', name:'Foco', sub:'Alinhamento e Propósito', badge:'Atividade em dupla' },
-    2: { dark:'#2D0051', mid:'#A261E1', light:'#DEC5FF', name:'Curiosidade', sub:'Empatia e Questionamento', badge:'Atividade em dupla' },
-    3: { dark:'#001B71', mid:'#007BEA', light:'#B3DFFF', name:'Transparência', sub:'Rituais e Sistematização', badge:'Atividade em dupla' },
-    4: { dark:'#003E00', mid:'#00C466', light:'#BDF4CC', name:'Identificação', sub:'Mapeamento de Perfis', badge:'Atividade individual' },
-  };
-
-  function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1,3),16);
-    const g = parseInt(hex.slice(3,5),16);
-    const b = parseInt(hex.slice(5,7),16);
-    return [r,g,b];
-  }
-
-  function fieldBlock(label, value, color) {
-    const empty = !value;
-    return [
-      { text: label, fontSize: 8, bold: true, color: color, margin: [0, 10, 0, 3] },
-      {
-        text: empty ? 'Não preenchido' : value,
-        fontSize: 10,
-        color: empty ? '#bba8a8' : '#210000',
-        italics: empty,
-        fillColor: '#F8F6F8',
-        margin: [0, 0, 0, 0],
-        padding: [8, 6, 8, 6],
-        border: [false,false,false,false],
-        table: {
-          widths: ['*'],
-          body: [[{
-            text: empty ? 'Não preenchido' : value,
-            fontSize: 10,
-            color: empty ? '#bba8a8' : '#210000',
-            italics: empty,
-            fillColor: '#F8F6F8',
-            border: [true,true,true,true],
-            borderColor: ['#E4DADA','#E4DADA','#E4DADA','#E4DADA'],
-            margin: [8, 6, 8, 6],
-          }]]
-        },
-        layout: { defaultBorder: false }
-      }
-    ];
-  }
-
-  function pilarHeader(n) {
-    const c = C[n];
-    const rgb = hexToRgb(c.dark);
-    return {
-      table: {
-        widths: ['*'],
-        body: [[{
-          stack: [
-            { text: `PILAR 0${n}`, fontSize: 8, bold: true, color: 'white', opacity: 0.6, characterSpacing: 2, margin: [0,0,0,3] },
-            { text: c.name, fontSize: 24, bold: true, color: 'white', margin: [0,0,0,3] },
-            { text: `${c.sub}  ·  ${c.badge}`, fontSize: 9, color: 'white', opacity: 0.75 },
-          ],
-          fillColor: c.dark,
-          border: [false,false,false,false],
-          margin: [18, 18, 18, 18],
-        }]]
-      },
-      layout: 'noBorders',
-      margin: [0, 0, 0, 16],
-    };
-  }
-
-  function buildPage(n, v) {
-    const c = C[n];
+  function buildPrintHTML() {
+    const v = getValues();
     const nome = v.nome || '';
     const area = v.p1_area || '';
-    const content = [pilarHeader(n)];
 
-    if (n === 1) {
-      // Meta block
-      content.push({
-        table: {
-          widths: [80, '*'],
-          body: [
-            [
-              { text: 'Participante', fontSize: 9, bold: true, color: '#6b4b4b', border:[false,false,false,true], borderColor:['','','','#eee'], margin:[8,8,8,8] },
-              { text: nome || '—', fontSize: 10, bold: true, color: '#210000', border:[false,false,false,true], borderColor:['','','','#eee'], margin:[8,8,8,8] }
-            ],
-            [
-              { text: 'Área parceira', fontSize: 9, bold: true, color: '#6b4b4b', border:[false,false,false,false], margin:[8,8,8,8] },
-              { text: area || '—', fontSize: 10, bold: true, color: '#210000', border:[false,false,false,false], margin:[8,8,8,8] }
-            ],
-          ]
-        },
-        layout: { fillColor: '#F8F6F8', hLineColor: '#eee', vLineColor: '#fff' },
-        margin: [0, 0, 0, 4],
-      });
-      content.push(...fieldBlock('Como minha área gera valor para o negócio?', v.p1_q1, c.dark));
-      content.push(...fieldBlock('O que ambas as nossas áreas concordam que é relevante?', v.p1_q2, c.dark));
-      content.push(...fieldBlock('Quando temos um impasse, qual é o nosso critério de decisão?', v.p1_q3, c.dark));
+    const C = {
+      1: { dark:'#A50062', mid:'#ED40A9', light:'#F6A7D7', name:'Foco', sub:'Alinhamento e Propósito', badge:'Atividade em dupla' },
+      2: { dark:'#2D0051', mid:'#A261E1', light:'#DEC5FF', name:'Curiosidade', sub:'Empatia e Questionamento', badge:'Atividade em dupla' },
+      3: { dark:'#001B71', mid:'#007BEA', light:'#B3DFFF', name:'Transparência', sub:'Rituais e Sistematização', badge:'Atividade em dupla' },
+      4: { dark:'#003E00', mid:'#00C466', light:'#BDF4CC', name:'Identificação', sub:'Mapeamento de Perfis', badge:'Atividade individual' },
+    };
 
-    } else if (n === 2) {
-      content.push({ text: `Olhando para sua relação com a área parceira${area ? ` (${area})` : ''}, quais são as 2 perguntas mais impactantes para fazer a colaboração deslanchar?`, fontSize: 10, color: '#6b4b4b', margin:[0,0,0,4] });
-      content.push(...fieldBlock('1  Pergunta 1', v.p2_q1, c.dark));
-      content.push(...fieldBlock('2  Pergunta 2', v.p2_q2, c.dark));
-
-    } else if (n === 3) {
-      content.push({ text: `Agenda conjunta com a área${area ? ` ${area}` : ' parceira'} — criação ou revisão de uma agenda que não está funcionando.`, fontSize: 10, color: '#6b4b4b', margin:[0,0,0,4] });
-      content.push(...fieldBlock('1  Essa reunião será um sucesso se...?', v.p3_q1, c.dark));
-      content.push(...fieldBlock('2  Como precisamos agir para obter sucesso?', v.p3_q2, c.dark));
-      content.push(...fieldBlock('3  Como garantir a aplicação do que foi discutido?', v.p3_q3, c.dark));
-
-    } else if (n === 4) {
-      content.push({ text: 'Mapeie até 3 pessoas da sua equipe para cada perfil e visualize como o time está se organizando hoje.', fontSize: 10, color: '#6b4b4b', margin:[0,0,0,10] });
-      const perfis = [
-        { name:'Bloqueador(a)', desc:'Dificulta processos e impede a comunicação', ids:['p4_b1','p4_b2','p4_b3'] },
-        { name:'Conector(a)',   desc:'Conecta múltiplas áreas para agir juntas',   ids:['p4_c1','p4_c2','p4_c3'] },
-        { name:'Executor(a)',   desc:'Faz o básico e realiza suas tarefas',         ids:['p4_e1','p4_e2','p4_e3'] },
-        { name:'Energizador(a)',desc:'Motiva e estimula os outros',                 ids:['p4_en1','p4_en2','p4_en3'] },
-      ];
-      const cols = perfis.map(p => ({
-        stack: [
-          { canvas: [{ type:'rect', x:0, y:0, w:240, h:3, color: c.mid, r:2 }], margin:[0,0,0,8] },
-          { text: p.name, fontSize: 11, bold: true, color: c.dark, margin:[0,0,0,2] },
-          { text: p.desc, fontSize: 9, color: '#6b4b4b', margin:[0,0,0,8] },
-          ...p.ids.map((id,i) => ({
-            text: `${i+1}.  ${v[id] || '—'}`,
-            fontSize: 10,
-            color: v[id] ? '#210000' : '#bba8a8',
-            italics: !v[id],
-            margin:[0,0,0,4],
-          }))
-        ],
-        fillColor: '#F8F6F8',
-        border:[false,false,false,false],
-        margin:[6,8,6,8],
-      }));
-      content.push({
-        table: { widths:['*','*'], body:[[cols[0],cols[1]],[cols[2],cols[3]]] },
-        layout: { defaultBorder: false, fillColor: '#F8F6F8', hLineColor:'#eee', vLineColor:'#eee' },
-      });
+    function fv(id) {
+      return v[id] ? `<div class="val">${v[id].replace(/\n/g,'<br>')}</div>`
+                   : `<div class="val empty">Não preenchido</div>`;
     }
 
-    // Footer
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    content.push({
-      columns: [
-        { text: 'Canvas de Colaboração · Crescimentum', fontSize: 9, color: '#bba8a8' },
-        { text: hoje, fontSize: 9, color: '#bba8a8', alignment: 'right' },
-      ],
-      margin: [0, 20, 0, 0],
-    });
+    const pages = [1,2,3,4].map(n => {
+      const c = C[n];
+      let body = '';
 
-    return content;
+      if (n === 1) {
+        body = `
+          <div class="meta">
+            <div class="meta-row"><span class="ml">Participante</span><span class="mv">${nome || '—'}</span></div>
+            <div class="meta-row"><span class="ml">Área parceira</span><span class="mv">${area || '—'}</span></div>
+          </div>
+          <div class="field"><div class="ql" style="color:${c.dark}">Como minha área gera valor para o negócio?</div>${fv('p1_q1')}</div>
+          <div class="field"><div class="ql" style="color:${c.dark}">O que ambas as nossas áreas concordam que é relevante?</div>${fv('p1_q2')}</div>
+          <div class="field"><div class="ql" style="color:${c.dark}">Quando temos um impasse, qual é o nosso critério de decisão?</div>${fv('p1_q3')}</div>`;
+      } else if (n === 2) {
+        body = `
+          <div class="intro">Olhando para sua relação com a área parceira${area ? ` <strong>(${area})</strong>` : ''}, quais são as <strong>2 perguntas mais impactantes</strong> para fazer a colaboração deslanchar?</div>
+          <div class="field"><div class="ql" style="color:${c.dark}"><span class="dot" style="background:${c.mid}">1</span> Pergunta 1</div>${fv('p2_q1')}</div>
+          <div class="field"><div class="ql" style="color:${c.dark}"><span class="dot" style="background:${c.mid}">2</span> Pergunta 2</div>${fv('p2_q2')}</div>`;
+      } else if (n === 3) {
+        body = `
+          <div class="intro">Agenda conjunta com a área${area ? ` <strong>${area}</strong>` : ' parceira'}.</div>
+          <div class="field"><div class="ql" style="color:${c.dark}"><span class="dot" style="background:${c.mid}">1</span> Essa reunião será um sucesso se...?</div>${fv('p3_q1')}</div>
+          <div class="field"><div class="ql" style="color:${c.dark}"><span class="dot" style="background:${c.mid}">2</span> Como precisamos agir para obter sucesso?</div>${fv('p3_q2')}</div>
+          <div class="field"><div class="ql" style="color:${c.dark}"><span class="dot" style="background:${c.mid}">3</span> Como garantir a aplicação do que foi discutido?</div>${fv('p3_q3')}</div>`;
+      } else {
+        const perfis = [
+          {name:'Bloqueador(a)',desc:'Dificulta processos e impede a comunicação',ids:['p4_b1','p4_b2','p4_b3']},
+          {name:'Conector(a)',desc:'Conecta múltiplas áreas para agir juntas',ids:['p4_c1','p4_c2','p4_c3']},
+          {name:'Executor(a)',desc:'Faz o básico e realiza suas tarefas',ids:['p4_e1','p4_e2','p4_e3']},
+          {name:'Energizador(a)',desc:'Motiva e estimula os outros',ids:['p4_en1','p4_en2','p4_en3']},
+        ];
+        body = `
+          <div class="intro">Mapeie até <strong>3 pessoas</strong> da sua equipe para cada perfil.</div>
+          <div class="pgrid">
+            ${perfis.map(p => `
+              <div class="pcard" style="border-top:3px solid ${c.mid}">
+                <div class="pname" style="color:${c.dark}">${p.name}</div>
+                <div class="pdesc">${p.desc}</div>
+                ${p.ids.map((id,i) => `<div class="prow"><span style="color:${c.mid};font-weight:800">${i+1}.</span> ${v[id] || '<em style="color:#bbb">—</em>'}</div>`).join('')}
+              </div>`).join('')}
+          </div>`;
+      }
+
+      return `
+        <div class="page">
+          <div class="ph" style="background:${c.dark}">
+            <div class="pnum">Pilar 0${n}</div>
+            <div class="pname">${c.name}</div>
+            <div class="psub">${c.sub}</div>
+            <div class="pbadge">${c.badge}${nome ? ` · ${nome}` : ''}</div>
+          </div>
+          <div class="pb">${body}</div>
+        </div>`;
+    }).join('');
+
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Canvas de Colaboração${nome ? ' - ' + nome : ''}</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Aptos','Segoe UI',sans-serif;color:#210000;background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @media print{
+    @page{size:A4;margin:-1px;}
+    body{margin:0;}
+    .page{page-break-after:always;}
+    .page:last-child{page-break-after:avoid;}
+  }
+  .page{width:210mm;min-height:297mm;background:#F2F0F5;display:flex;flex-direction:column;padding-bottom:32px;}
+  .ph{padding:32px 36px 28px;}
+  .pnum{font-family:'Raleway',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:6px;}
+  .pname{font-family:'Raleway',sans-serif;font-size:56px;font-weight:800;color:white;line-height:1.0;margin-bottom:6px;}
+  .psub{font-size:15px;color:rgba(255,255,255,0.65);margin-bottom:14px;}
+  .pbadge{display:inline-block;padding:6px 16px;border-radius:999px;font-size:12px;font-family:'Raleway',sans-serif;font-weight:700;background:rgba(255,255,255,0.18);color:white;}
+  .pb{padding:20px 32px;display:flex;flex-direction:column;gap:14px;flex:1;}
+  .meta{background:white;border-radius:10px;overflow:hidden;}
+  .meta-row{display:flex;gap:10px;padding:11px 16px;border-bottom:1px solid #eee;}
+  .meta-row:last-child{border-bottom:none;}
+  .ml{font-family:'Raleway',sans-serif;font-size:13px;font-weight:700;color:#6b4b4b;min-width:100px;}
+  .mv{font-size:15px;font-weight:600;color:#210000;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .ql{font-family:'Raleway',sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .val{background:white;border-radius:8px;padding:12px 16px;font-size:15px;color:#210000;min-height:40px;line-height:1.6;}
+  .val.empty{color:#bba8a8;font-style:italic;}
+  .intro{font-size:14px;color:#6b4b4b;line-height:1.6;background:white;border-radius:8px;padding:14px 18px;}
+  .dot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-family:'Raleway',sans-serif;font-size:11px;font-weight:800;color:white;flex-shrink:0;}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .pcard{background:white;border-radius:10px;padding:16px 18px;}
+  .pname{font-family:'Raleway',sans-serif;font-size:15px;font-weight:800;margin-bottom:3px;}
+  .pdesc{font-size:12px;color:#6b4b4b;margin-bottom:12px;line-height:1.4;}
+  .prow{font-size:14px;color:#210000;padding:5px 0;border-bottom:1px solid #f0ece8;}
+  .prow:last-child{border-bottom:none;}
+</style>
+</head>
+<body>
+${pages}
+<script>document.fonts.ready.then(()=>window.print());<\/script>
+</body>
+</html>`;
   }
 
-  function buildDocDef(pilars) {
-    const v = getValues();
-    const nome = (v.nome || 'canvas').replace(/\s+/g,'-').toLowerCase();
-    const content = [];
-    pilars.forEach((n, i) => {
-      if (i > 0) content.push({ text: '', pageBreak: 'before' });
-      content.push(...buildPage(n, v));
-    });
-    return {
-      content,
-      pageSize: 'A4',
-      pageMargins: [32, 32, 32, 32],
-      defaultStyle: { font: 'Helvetica' },
-    };
-  }
-
-  function downloadAllPDF() {
-    const btn = document.querySelector('.nav-pdf-btn');
-    btn.textContent = 'Gerando...';
-    btn.disabled = true;
-    const v = getValues();
-    const nome = (v.nome || 'canvas').replace(/\s+/g,'-').toLowerCase();
-    pdfMake.createPdf(buildDocDef([1,2,3,4])).download(`canvas-colaboracao-${nome}.pdf`, () => {
-      btn.textContent = 'Baixar PDF';
-      btn.disabled = false;
-    });
+  function abrirPDF() {
+    const w = window.open('', '_blank');
+    w.document.write(buildPrintHTML());
+    w.document.close();
   }
 
   load();
