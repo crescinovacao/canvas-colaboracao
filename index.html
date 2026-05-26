@@ -607,6 +607,8 @@
 
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
   const FIELDS = [
     'nome','p1_area',
@@ -746,9 +748,9 @@
   body{font-family:'Aptos','Segoe UI',sans-serif;color:#210000;background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   @media print{
     @page{size:A4;margin:-1px;}
-    body{margin:0;}
-    .page{page-break-after:always;}
-    .page:last-child{page-break-after:avoid;}
+    body{margin:0;overflow:hidden;}
+    .page{page-break-after:always;overflow:hidden;}
+    .page:last-child{page-break-after:auto;}
   }
   .page{width:210mm;min-height:297mm;background:#F2F0F5;display:flex;flex-direction:column;padding-bottom:32px;}
   .ph{padding:32px 36px 28px;}
@@ -784,9 +786,76 @@ ${pages}
   }
 
   function abrirPDF() {
-    const w = window.open('', '_blank');
-    w.document.write(buildPrintHTML());
-    w.document.close();
+    const v = getValues();
+    const nome = v.nome || 'canvas-colaboracao';
+    const btn = document.querySelector('.download-btn');
+    const btnTxt = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Gerando PDF...'; btn.disabled = true; }
+
+    const htmlContent = buildPrintHTML();
+
+    // Extrai o CSS de dentro do <style> e o HTML do <body> do documento gerado
+    const styleMatch = htmlContent.match(/<style>([\s\S]*?)<\/style>/);
+    const bodyMatch = htmlContent.match(/<body>([\s\S]*?)<script>/);
+    const css = styleMatch ? styleMatch[1] : '';
+    const bodyHTML = bodyMatch ? bodyMatch[1] : '';
+
+    // Injeta o CSS uma vez (escopado pelas próprias classes .page, .ph, etc.)
+    const styleTag = document.createElement('style');
+    styleTag.id = 'pdf-temp-style';
+    styleTag.textContent = css;
+    document.head.appendChild(styleTag);
+
+    const container = document.createElement('div');
+    container.innerHTML = bodyHTML;
+    container.style.position = 'fixed';
+    container.style.top = '0';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+
+    function cleanup() {
+      if (container.parentNode) document.body.removeChild(container);
+      if (styleTag.parentNode) document.head.removeChild(styleTag);
+      if (btn) { btn.textContent = btnTxt; btn.disabled = false; }
+    }
+
+    const pages = container.querySelectorAll('.page');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ format: 'a4', unit: 'mm', compress: true });
+    let pageNum = 0;
+
+    function processPage() {
+      if (pageNum >= pages.length) {
+        pdf.save(`${nome}-canvas-colaboracao.pdf`);
+        cleanup();
+        return;
+      }
+
+      const page = pages[pageNum];
+      html2canvas(page, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#F2F0F5',
+        logging: false
+      }).then(canvas => {
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        if (pageNum > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+        pageNum++;
+        processPage();
+      }).catch(err => {
+        console.error('Erro ao gerar PDF:', err);
+        alert('Houve um erro ao gerar o PDF. Tente novamente.');
+        cleanup();
+      });
+    }
+
+    // Aguarda as fontes carregarem antes de renderizar
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => setTimeout(processPage, 100));
+    } else {
+      setTimeout(processPage, 300);
+    }
   }
 
   load();
